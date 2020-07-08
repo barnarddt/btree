@@ -15,3 +15,8 @@
 module github.com/google/btree
 
 go 1.12
+
+require (
+	github.com/oklog/ulid/v2 v2.0.2
+	github.com/pborman/uuid v1.2.0
+)

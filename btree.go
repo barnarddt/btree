@@ -49,7 +49,6 @@ package btree
 
 import (
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 	"sync"
@@ -91,6 +90,7 @@ func NewFreeList(size int) *FreeList {
 
 func (f *FreeList) newNode() (n *node) {
 	f.mu.Lock()
+	NewNodeCnt++
 	index := len(f.freelist) - 1
 	if index < 0 {
 		f.mu.Unlock()
@@ -125,6 +125,7 @@ type ItemIterator func(i Item) bool
 // New(2), for example, will create a 2-3-4 tree (each node contains 1-3 items
 // and 2-4 children).
 func New(degree int) *BTree {
+	NewNodeCnt = 0
 	return NewWithFreeList(degree, NewFreeList(DefaultFreeListSize))
 }
 
@@ -568,12 +569,14 @@ func (n *node) iterate(dir direction, start, stop Item, includeStart bool, hit b
 }
 
 // Used for testing/debugging purposes.
-func (n *node) print(w io.Writer, level int) {
-	fmt.Fprintf(w, "%sNODE:%v\n", strings.Repeat("  ", level), n.items)
+func (n *node) print(level int) {
+	fmt.Printf("%sNODE L%d:%v\n", strings.Repeat("  ", level), level, n.items)
 	for _, c := range n.children {
-		c.print(w, level+1)
+		c.print(level + 1)
 	}
 }
+
+var NewNodeCnt int
 
 // BTree is an implementation of a B-Tree.
 //
@@ -629,6 +632,10 @@ func (t *BTree) Clone() (t2 *BTree) {
 	t.cow = &cow1
 	out.cow = &cow2
 	return &out
+}
+
+func (t *BTree) NodeCount() int {
+	return NewNodeCnt
 }
 
 // maxItems returns the max number of items to allow per node.
@@ -710,6 +717,10 @@ func (t *BTree) ReplaceOrInsert(item Item) Item {
 // it.  If no such item exists, returns nil.
 func (t *BTree) Delete(item Item) Item {
 	return t.deleteItem(item, removeItem)
+}
+
+func (t *BTree) Print() {
+	t.root.print(0)
 }
 
 // DeleteMin removes the smallest item in the tree and returns it.
